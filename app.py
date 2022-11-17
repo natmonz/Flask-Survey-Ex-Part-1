@@ -1,10 +1,10 @@
-from flask import Flask, render_template, redirect, request, flash
+from flask import Flask, render_template, redirect, request, flash, session
 from flask_debugtoolbar import DebugToolbarExtension
 from surveys import satisfaction_survey as survey
 
 app = Flask(__name__)
 
-responses = []
+RESPONSES_KEY = 'responses'
 app.config['SECRET_KEY'] = "SurveysRCool"
 debug = DebugToolbarExtension(app)
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS']=False
@@ -17,6 +17,7 @@ def home_page():
 @app.route('/begin-survey', methods=['POST'])
 def begin_survey():
     """User is redirected to first question of the survey"""
+    session[RESPONSES_KEY] = []
     return redirect('/questions/0')
 
 @app.route('/answer', methods=['POST'])
@@ -25,7 +26,10 @@ def handle_question_and_answer():
     IF the responses meets the length of the survey, then user is redirected to the completion page.
     """
     choice = request.form['answer']
+    responses = session[RESPONSES_KEY]
     responses.append(choice)
+    session[RESPONSES_KEY] = responses
+
     if (len(responses) == len(survey.questions)):
         return redirect('/survey-complete')
     else:
@@ -33,6 +37,7 @@ def handle_question_and_answer():
 
 @app.route('/questions/<int:id>')
 def survey_questions(id):
+    responses = session.get(RESPONSES_KEY)
     """ If loops """
     if (responses == None):
         """ If there are no responses, then user is redirected to the main page"""
